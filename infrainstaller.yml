@@ -1,0 +1,239 @@
+---
+
+- name: Maken van een azure Infrastructuur Clickable
+  hosts: localhost
+  connection: local
+  vars_prompt:
+    - name: password
+      prompt: "Énter local administrator password"
+  tasks:
+    - name: Create virtual network
+      azure_rm_virtualnetwork:
+        resource_group: A2S2_groep01
+        name: vNet03
+        address_prefixes: "192.168.0.0/16"
+
+    - name: Add subnet
+      azure_rm_subnet:
+        resource_group: A2S2_groep01
+        name: A2S2_groep01_Frontend
+        address_prefix: "192.168.1.0/24"
+        virtual_network: vNet03
+   
+    - name: Add subnet
+      azure_rm_subnet:
+        resource_group: A2S2_groep01
+        name: A2S2_groep01_Backend
+        address_prefix: "192.168.2.0/24"
+        virtual_network: vNet03
+
+    - name: Create public IP address
+      azure_rm_publicipaddress:
+        resource_group: A2S2_groep01
+        allocation_method: Static
+        name: pip02
+      register: output_ip_address
+
+    - name: Create public IP address
+      azure_rm_publicipaddress:
+        resource_group: A2S2_groep01
+        allocation_method: Static
+        name: pip03
+      register: output_ip_address
+
+    - name: Create public IP address
+      azure_rm_publicipaddress:
+        resource_group: A2S2_groep01
+        allocation_method: Static
+        name: pip04
+      register: output_ip_address
+
+    - name: Output public IP
+      debug:
+        msg: "'The public IP is {{output_ip_address.state.ip_address }}"
+
+    - name: Create Network Security group
+      azure_rm_securitygroup:
+        resource_group: A2S2_groep01
+        name: A2S2_groep01_NSG_Frontend
+        rules:
+          - name: 'allow_rdp'
+            protocol: Tcp
+            destination_port_range: 3389
+            access: Allow
+            priority: 1001
+            direction: Inbound
+          - name: 'allow_webtraffic'
+            protocol: Tcp
+            destination_port_range:
+              - 80
+              - 443
+            access: Allow
+            priority: 1002
+            direction: Inbound
+          - name: 'allow_SSHtraffic'
+            protocol: Tcp
+            destination_port_range:
+              - 22
+            access: Allow
+            priority: 1003
+            direction: Inbound
+            
+    - name: Create Network Security group
+      azure_rm_securitygroup:
+        resource_group: A2S2_groep01
+        name: A2S2_groep01_NSG_Backend
+        rules:
+          - name: 'allow_rdp'
+            protocol: Tcp
+            destination_port_range: 3389
+            access: Allow
+            priority: 1001
+            direction: Inbound
+          - name: 'allow_SSHtraffic'
+            protocol: Tcp
+            destination_port_range:
+              - 22
+            access: Allow
+            priority: 1002
+            direction: Inbound
+
+    - name: Create a network interface01
+      azure_rm_networkinterface:
+        name: nicF01
+        resource_group: A2S2_groep01
+        virtual_network: vNet03
+        subnet_name: A2S2_groep01_Frontend
+        security_group: A2S2_groep01_NSG_Frontend
+        ip_configurations:
+          - name: default
+            public_ip_address_name: pip02
+            primary: True
+
+    - name: Create a network interface02
+      azure_rm_networkinterface:
+        name: nicF02
+        resource_group: A2S2_groep01
+        virtual_network: vNet03
+        subnet_name: A2S2_groep01_Frontend
+        security_group: A2S2_groep01_NSG_Frontend
+        ip_configurations:
+          - name: default
+            public_ip_address_name: pip03
+            primary: True
+
+    - name: Create a network interface03
+      azure_rm_networkinterface:
+        name: nicF03
+        resource_group: A2S2_groep01
+        virtual_network: vNet03
+        subnet_name: A2S2_groep01_Frontend
+        security_group: A2S2_groep01_NSG_Frontend
+        ip_configurations:
+          - name: default
+            public_ip_address_name: pip04
+            primary: True
+
+    - name: Create a network interface04
+      azure_rm_networkinterface:
+        name: nicB04
+        resource_group: A2S2_groep01
+        virtual_network: vNet03
+        subnet_name: A2S2_groep01_Backend
+        security_group: A2S2_groep01_NSG_Backend
+        ip_configurations:
+          - name: default
+            primary: True
+
+    - name: Create a network interface05
+      azure_rm_networkinterface:
+        name: nicB05
+        resource_group: A2S2_groep01
+        virtual_network: vNet03
+        subnet_name: A2S2_groep01_Backend
+        security_group: A2S2_groep01_NSG_Backend
+        ip_configurations:
+          - name: default
+            primary: True
+
+    - name: Create VM01
+      azure_rm_virtualmachine:
+        resource_group: A2S2_groep01
+        name: A2S2-groep01-Web01
+        vm_size: Standard_DS1_v2
+        managed_disk_type: Standard_LRS 
+        admin_username: azureuser
+        admin_password: "{{ password }}"
+        network_interfaces: nicF01
+        os_type: Linux
+        image:
+            offer: 0001-com-ubuntu-server-focal
+            publisher: Canonical
+            sku: 20_04-lts
+            version: latest
+
+    - name: Create VM02
+      azure_rm_virtualmachine:
+        resource_group: A2S2_groep01
+        name: A2S2-groep01-Web02
+        vm_size: Standard_DS1_v2
+        managed_disk_type: Standard_LRS 
+        admin_username: azureuser
+        admin_password: "{{ password }}"
+        network_interfaces: nicF02
+        os_type: Linux
+        image:
+            offer: 0001-com-ubuntu-server-focal
+            publisher: Canonical
+            sku: 20_04-lts
+            version: latest
+
+    - name: Create VM03
+      azure_rm_virtualmachine:
+        resource_group: A2S2_groep01
+        name: A2S2-gr01-Stp01
+        vm_size: Standard_DS1_v2
+        managed_disk_type: Standard_LRS 
+        admin_username: azureuser
+        admin_password: "{{ password }}"
+        network_interfaces: nicF03
+        os_type: Windows
+        image:
+            offer: Windows-10
+            publisher: MicrosoftWindowsDesktop
+            sku: 20h1-pro
+            version: latest
+
+    - name: Create VM04
+      azure_rm_virtualmachine:
+        resource_group: A2S2_groep01
+        name: A2S2-groep01-Data01
+        vm_size: Standard_DS1_v2
+        managed_disk_type: Standard_LRS 
+        admin_username: azureuser
+        admin_password: "{{ password }}"
+        network_interfaces: nicB04
+        os_type: Linux
+        image:
+            offer: 0001-com-ubuntu-server-focal
+            publisher: Canonical
+            sku: 20_04-lts
+            version: latest
+
+    - name: Create VM05
+      azure_rm_virtualmachine:
+        resource_group: A2S2_groep01
+        name: A2S2-gr01-FTP01
+        vm_size: Standard_DS1_v2
+        managed_disk_type: Standard_LRS 
+        admin_username: azureuser
+        admin_password: "{{ password }}"
+        network_interfaces: nicB05
+        os_type: Windows
+        image:
+            offer: WindowsServer
+            publisher: MicrosoftWindowsServer
+            sku: 2019-Datacenter
+            version: latest
+     
+
