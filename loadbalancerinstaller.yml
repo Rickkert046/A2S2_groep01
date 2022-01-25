@@ -1,0 +1,35 @@
+---
+- name: blah blah blah
+  hosts: localhost
+  connection: local
+
+  tasks:
+    - name: ansible load balancer
+      community.general.oneandone_load_balancer:
+      health_check_test: TCP
+      health_check_interval: 40
+      persistence: true
+      persistence_time: 1200
+      method: ROUND_ROBIN
+      datacenter: westeurope
+      rules:
+       -
+         protocol: TCP
+         portbalance: 80
+         port_server: 80
+         source: 0.0.0.0
+      wait: true
+      wait_timeout: 500
+
+    - name: add server to a load balancer
+      community.general.oneandone_load_balancer:
+      load_balancer: ansible load balancer updates
+      description: Adding server to a load balancer with ansible
+      add_server_ips:
+       - 20.73.177.244
+       - 20.71.208.97
+      wait: true
+      wait_timeout: 500
+      state: update
+  
+      

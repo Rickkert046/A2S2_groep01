@@ -1,0 +1,14 @@
+---
+- hosts: databaseservers
+  become: yes
+
+  tasks:
+    - name: installing mysql
+      apt: name=mysql update_cache=yes state=latest
+        
+    - name: Enable and start service httpd
+      service:
+        name: mysql
+        enabled: yes
+        state: started
+

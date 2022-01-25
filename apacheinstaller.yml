@@ -1,0 +1,14 @@
+---
+- hosts: webservers
+  become: yes
+
+  tasks:
+    - name: installing Apache
+      apt: name=apache2 update_cache=yes state=latest
+        
+    - name: Enable and start service apache
+      service:
+        name: apache2
+        enabled: yes
+        state: started
+
